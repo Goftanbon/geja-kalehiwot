@@ -1,12 +1,20 @@
-import { ThemeToggle } from "@/components/ui/themeToggle";
-import Image from "next/image";
+import { getSession } from "@/lib/get-session";
+import HomeClient from "./_components/HomeClient";
 
-export default function Home() {
+export default async function Home() {
+  const session = await getSession();
+
   return (
-    <div className="">
-      <main>
-        <ThemeToggle />
-      </main>
-    </div>
+    <HomeClient
+      user={
+        session
+          ? {
+              name: session.user.name,
+              image: session.user.image,
+              email: session.user.email,
+            }
+          : null
+      }
+    />
   );
 }
