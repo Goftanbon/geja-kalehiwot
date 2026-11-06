@@ -12,6 +12,14 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "geja-kalehiwot.fly.storage.tigris.dev",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

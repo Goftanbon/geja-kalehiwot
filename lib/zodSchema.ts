@@ -30,10 +30,10 @@ export const homeSlideSchema = z
 
     // Media
     mediaType: z.enum(slideMediaTypes),
-    image: optionalText,
-    imageAlt: optionalText,
-    video: optionalText,
-    videoPoster: optionalText,
+    image: z.string().optional(), // S3 key
+    imageAlt: z.string().optional(), // generated, not typed
+    video: z.string().optional(), // S3 key
+    videoPoster: z.string().optional(), // S3 key
 
     // Styling
     gradient: z.enum(slideGradients),
@@ -42,37 +42,85 @@ export const homeSlideSchema = z
     sortOrder: z.coerce.number().int().min(0),
     isPublished: z.boolean().default(false),
   })
-  .superRefine((data, ctx) => {
-    // Require the appropriate media URL
-    if (data.mediaType === "IMAGE" && !data.image) {
+  .superRefine((v, ctx) => {
+    if (v.mediaType === "IMAGE" && !v.image) {
       ctx.addIssue({
         code: "custom",
         path: ["image"],
-        message: "Image URL is required",
+        message: "Please upload an image",
       });
     }
-
-    if (data.mediaType === "VIDEO" && !data.video) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["video"],
-        message: "Video URL is required",
-      });
-    }
-
-    // Secondary button label and URL should be provided together
-    const hasSecondaryLabel =
-      !!data.secondaryLabelEn && !!data.secondaryLabelAm;
-    const hasSecondaryHref = !!data.secondaryHref;
-
-    if (hasSecondaryLabel !== hasSecondaryHref) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["secondaryHref"],
-        message: "Provide both secondary button labels and its URL",
-      });
+    if (v.mediaType === "VIDEO") {
+      if (!v.video) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["video"],
+          message: "Please upload a video",
+        });
+      }
+      if (!v.videoPoster) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["videoPoster"],
+          message: "Please upload a poster image",
+        });
+      }
     }
   });
+// .superRefine((v, ctx) => {
+//   // Require the appropriate media URL
+//   // if (data.mediaType === "IMAGE" && !data.image) {
+//   //   ctx.addIssue({
+//   //     code: "custom",
+//   //     path: ["image"],
+//   //     message: "Image URL is required",
+//   //   });
+//   // }
+
+//   // if (data.mediaType === "VIDEO" && !data.video) {
+//   //   ctx.addIssue({
+//   //     code: "custom",
+//   //     path: ["video"],
+//   //     message: "Video URL is required",
+//   //   });
+//   // }
+//   if (v.mediaType === "IMAGE" && !v.image) {
+//     ctx.addIssue({
+//       code: "custom",
+//       path: ["image"],
+//       message: "Please upload an image",
+//     });
+//   }
+//   if (v.mediaType === "VIDEO") {
+//     if (!v.video) {
+//       ctx.addIssue({
+//         code: "custom",
+//         path: ["video"],
+//         message: "Please upload a video",
+//       });
+//     }
+//     if (!v.videoPoster) {
+//       ctx.addIssue({
+//         code: "custom",
+//         path: ["videoPoster"],
+//         message: "Please upload a poster image",
+//       });
+//     }
+//   }
+
+//   // Secondary button label and URL should be provided together
+//   const hasSecondaryLabel =
+//     !!data.secondaryLabelEn && !!data.secondaryLabelAm;
+//   const hasSecondaryHref = !!data.secondaryHref;
+
+//   if (hasSecondaryLabel !== hasSecondaryHref) {
+//     ctx.addIssue({
+//       code: "custom",
+//       path: ["secondaryHref"],
+//       message: "Provide both secondary button labels and its URL",
+//     });
+//   }
+// });
 
 export type HomeSlideFormValues = z.input<typeof homeSlideSchema>;
 export type HomeSlideSchemaType = z.output<typeof homeSlideSchema>;

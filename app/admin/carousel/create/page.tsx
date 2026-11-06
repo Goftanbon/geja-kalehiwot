@@ -4,14 +4,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useState, useTransition } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+// adjust this path to wherever your Uploader.tsx lives
+import { Uploader } from "@/components/file-uploader/Uploader";
 
 import { tryCatch } from "@/hooks/try-catch";
 import {
@@ -21,6 +23,7 @@ import {
   type HomeSlideFormValues,
   type HomeSlideSchemaType,
 } from "@/lib/zodSchema";
+import { CreateHomeSlide } from "./action";
 
 // import { CreateHomeSlide } from "./action";
 
@@ -37,7 +40,7 @@ function Field({
   error,
   children,
 }: {
-  htmlFor: string;
+  htmlFor?: string;
   label: string;
   error?: string;
   children: React.ReactNode;
@@ -75,15 +78,28 @@ function FormSection({
 const selectClass =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
+// Builds the alt text from the uploaded file's S3 key,
+// e.g. "abc123-church-choir.jpg" -> "carousel-image-abc123-church-choir"
+function altFromKey(key: string) {
+  const fileName = key.split("/").pop() ?? key;
+  return `carousel-image-${fileName.replace(/\.[^.]+$/, "")}`;
+}
+
 export default function CarouselCreationPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
+  // The Uploader keeps its own internal state, so we remount it
+  // (by changing its key) when the form is reset.
+  const [resetKey, setResetKey] = useState(0);
 
   const {
     register,
     handleSubmit,
     watch,
     reset,
+    control,
+    setValue,
     formState: { errors },
   } = useForm<HomeSlideFormValues, unknown, HomeSlideSchemaType>({
     resolver: zodResolver(homeSlideSchema),
@@ -116,20 +132,44 @@ export default function CarouselCreationPage() {
 
   const mediaType = watch("mediaType");
 
+  const handleReset = () => {
+    reset();
+    setResetKey((k) => k + 1);
+  };
+
+  //   const onSubmit = (values: HomeSlideSchemaType) => {
+  //     startTransition(async () => {
+  //       const { data, error } = await tryCatch(CreateHomeSlide(values));
+  //       if (error) {
+  //         toast.error("An unexpected error occurred");
+  //         return;
+  //       }
+  //       if (data?.status === "success") {
+  //         toast.success(data.message);
+  //         handleReset();
+  //         router.push("/admin/carousel");
+  //       } else if (data?.status === "error") {
+  //         toast.error(data.message);
+  //       }
+  //     });
+  //   };
+
   const onSubmit = (values: HomeSlideSchemaType) => {
     startTransition(async () => {
-      //   const { data, error } = await tryCatch(CreateHomeSlide(values));
-      //   if (error) {
-      //     toast.error("An unexpected error occurred");
-      //     return;
-      //   }
-      //   if (data?.status === "success") {
-      //     toast.success(data.message);
-      //     reset();
-      //     router.push("/admin/carousel");
-      //   } else if (data?.status === "error") {
-      //     toast.error(data.message);
-      //   }
+      const { data, error } = await tryCatch(CreateHomeSlide(values));
+
+      if (error) {
+        toast.error("An unexpected error occurred");
+        return;
+      }
+
+      if (data?.status === "success") {
+        toast.success(data.message);
+        handleReset();
+        router.push("/admin/carousel");
+      } else if (data?.status === "error") {
+        toast.error(data.message);
+      }
     });
   };
 
@@ -304,56 +344,58 @@ export default function CarouselCreationPage() {
           </Field>
 
           {mediaType === "IMAGE" && (
-            <>
-              <Field
-                htmlFor="image"
-                label="Image URL"
-                error={errors.image?.message}
-              >
-                <Input
-                  id="image"
-                  placeholder="https://example.com/image.jpg"
-                  {...register("image")}
-                />
-              </Field>
-
-              <Field
-                htmlFor="imageAlt"
-                label="Image Alt Text"
-                error={errors.imageAlt?.message}
-              >
-                <Input
-                  id="imageAlt"
-                  placeholder="Description of the background image"
-                  {...register("imageAlt")}
-                />
-              </Field>
-            </>
+            <Field label="Background Image" error={errors.image?.message}>
+              <Controller
+                control={control}
+                name="image"
+                render={({ field }) => (
+                  <Uploader
+                    key={`image-${resetKey}`}
+                    fileTypeAccepted="image"
+                    value={field.value}
+                    onChange={(key) => {
+                      field.onChange(key);
+                      // alt text is generated from the uploaded file name
+                      setValue("imageAlt", key ? altFromKey(key) : "");
+                    }}
+                  />
+                )}
+              />
+            </Field>
           )}
 
           {mediaType === "VIDEO" && (
             <>
-              <Field
-                htmlFor="video"
-                label="Video URL"
-                error={errors.video?.message}
-              >
-                <Input
-                  id="video"
-                  placeholder="https://example.com/video.mp4"
-                  {...register("video")}
+              <Field label="Background Video" error={errors.video?.message}>
+                <Controller
+                  control={control}
+                  name="video"
+                  render={({ field }) => (
+                    <Uploader
+                      key={`video-${resetKey}`}
+                      fileTypeAccepted="video"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
                 />
               </Field>
 
               <Field
-                htmlFor="videoPoster"
-                label="Video Poster URL"
+                label="Video Poster Image"
                 error={errors.videoPoster?.message}
               >
-                <Input
-                  id="videoPoster"
-                  placeholder="https://example.com/poster.jpg"
-                  {...register("videoPoster")}
+                <Controller
+                  control={control}
+                  name="videoPoster"
+                  render={({ field }) => (
+                    <Uploader
+                      key={`poster-${resetKey}`}
+                      fileTypeAccepted="image"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
                 />
               </Field>
             </>
@@ -385,7 +427,7 @@ export default function CarouselCreationPage() {
         </FormSection> */}
 
         {/* Management */}
-        <FormSection
+        {/* <FormSection
           title="Management"
           description="Configure the slide's display order and publication status."
         >
@@ -411,14 +453,14 @@ export default function CarouselCreationPage() {
             />
             <Label htmlFor="isPublished">Publish this slide immediately</Label>
           </div>
-        </FormSection>
+        </FormSection> */}
 
         {/* Actions */}
         <div className="flex flex-wrap justify-end gap-3 pb-6">
           <Button
             type="button"
             variant="outline"
-            onClick={() => reset()}
+            onClick={handleReset}
             disabled={isPending}
           >
             Reset
