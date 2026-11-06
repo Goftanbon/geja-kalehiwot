@@ -209,4 +209,8 @@
   html {
     @apply font-sans;
   }
+
+  :lang(am) {
+    font-family: var(--font-ethiopic), var(--font-geist-sans), sans-serif;
+  }
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ui/themeToggle";
 import {
   DropdownMenu,
@@ -27,14 +26,12 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Church,
   Coffee,
   HandHeart,
   LogOut,
   MapPin,
   Menu,
   Newspaper,
-  Search,
   ShoppingBag,
   Shirt,
   UserRound,
@@ -44,6 +41,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { T, type Lang } from "@/lib/translations";
 
 type HomeClientProps = {
   user: {
@@ -53,186 +51,68 @@ type HomeClientProps = {
   } | null;
 };
 
-/* ------------------------------------------------------------------ */
-/* Sample data. Each array mirrors a table in your schema (event, news, */
-/* department, product) so it's easy to swap for real Prisma data later. */
-/* ------------------------------------------------------------------ */
 
-const NAV_LINKS = [
-  { label: "Events", href: "#events" },
-  { label: "News", href: "#news" },
-  { label: "Departments", href: "#departments" },
-  { label: "Shop", href: "#shop" },
-  { label: "Donate", href: "#donate" },
-];
 
-// Set `image` to a file in /public (e.g. "/hero-1.jpg") to use a real photo.
+/* ================================================================== */
+/* STATIC DATA (no text here, only links, images, icons, colors)        */
+/* Entries line up by index with the arrays in the dictionaries above.  */
+/* ================================================================== */
+
+const NAV_HREFS = ["#events", "#news", "#departments", "#shop", "#donate"];
+
+// `image` must start with "/" (files live in /public). `position` picks the
+// part of the photo that stays visible when it gets cropped.
 const SLIDES = [
   {
-    title: "Welcome to Geja Kale Hiwot",
-    subtitle: "A community growing together in faith.",
-    primary: { label: "Get connected", href: "#connect" },
-    secondary: { label: "Learn more", href: "#about" },
     image: "/hero3.jpg",
+    position: "center",
     gradient: "from-[#172b4d] via-[#1555bf] to-black",
+    primaryHref: "#connect",
+    secondaryHref: "#about",
   },
   {
-    title: "Join us at our next event",
-    subtitle: "Worship, conferences, and community gatherings.",
-    primary: { label: "See events", href: "#events" },
-    secondary: { label: "Latest news", href: "#news" },
-    image: "hero4.jpg",
+    image: "/hero4.jpg",
+    position: "center",
     gradient: "from-[#1555bf] via-[#172b4d] to-black",
+    primaryHref: "#events",
+    secondaryHref: "#news",
   },
   {
-    title: "Listen to Our Music",
-    subtitle:
-      "Experience uplifting worship and praise through the music of Geja Kale Hiwot.",
-    primary: {
-      label: "Listen on YouTube",
-      href: "https://www.youtube.com/@YOUR_CHANNEL",
-    },
-    secondary: {
-      label: "Listen on Spotify",
-      href: "https://www.youtube.com/@YOUR_CHANNEL",
-    },
-    image: "Hero5.jpg",
+    image: "/Hero5.jpg",
+    position: "center",
     gradient: "from-[#172b4d] via-[#1555bf] to-black",
+    primaryHref: "https://www.youtube.com/@YOUR_CHANNEL",
+    secondaryHref: "https://www.youtube.com/@YOUR_CHANNEL",
   },
 ];
 
 const EXPERIENCES = [
-  {
-    icon: CalendarDays,
-    title: "Events",
-    text: "Find worship services, conferences, and gatherings happening near you.",
-    cta: "Browse events",
-    href: "#events",
-  },
-  {
-    icon: Newspaper,
-    title: "News",
-    text: "Stay up to date with announcements and stories from our church family.",
-    cta: "Read the news",
-    href: "#news",
-  },
-  {
-    icon: Users,
-    title: "Departments",
-    text: "Discover a department where you can grow, connect, and use your gifts.",
-    cta: "Explore departments",
-    href: "#departments",
-  },
-  {
-    icon: ShoppingBag,
-    title: "Shop",
-    text: "Books, apparel, and more. Every purchase supports our ministry.",
-    cta: "Visit the shop",
-    href: "#shop",
-  },
+  { icon: CalendarDays, href: "#events" },
+  { icon: Newspaper, href: "#news" },
+  { icon: Users, href: "#departments" },
+  { icon: ShoppingBag, href: "#shop" },
 ];
 
-const EVENTS = [
-  {
-    title: "Sunday Worship Service",
-    date: "Every Sunday, 8:00 AM",
-    place: "Main Sanctuary",
-    gradient: "from-[#1555bf] to-[#172b4d]",
-  },
-  {
-    title: "Youth Conference",
-    date: "Nov 21, 2026",
-    place: "Main Hall",
-    gradient: "from-[#172b4d] to-black",
-  },
-  {
-    title: "Community Outreach Day",
-    date: "Dec 5, 2026",
-    place: "Addis Ababa",
-    gradient: "from-[#4f83d1] to-[#172b4d]",
-  },
-  {
-    title: "Genna Celebration",
-    date: "Jan 7, 2027",
-    place: "Main Sanctuary",
-    gradient: "from-[#d6a84b] to-[#172b4d]",
-  },
+const EVENT_GRADIENTS = [
+  "from-[#1555bf] to-[#172b4d]",
+  "from-[#172b4d] to-black",
+  "from-[#4f83d1] to-[#172b4d]",
+  "from-[#d6a84b] to-[#172b4d]",
 ];
 
-const NEWS = [
-  {
-    title: "New season of Sunday school begins",
-    date: "Nov 3, 2026",
-    excerpt:
-      "Registration is now open for children and teens. Families can sign up after any service.",
-  },
-  {
-    title: "Choir announces annual concert",
-    date: "Oct 28, 2026",
-    excerpt:
-      "An evening of worship music with guest ministers and the full choir.",
-  },
-  {
-    title: "Outreach team reaches 500 families",
-    date: "Oct 15, 2026",
-    excerpt:
-      "Thanks to your generosity, food and supplies were delivered across the city this month.",
-  },
+const DEPT_STYLES = [
+  { bg: "bg-[#1555bf]", text: "text-white", wide: false },
+  { bg: "bg-[#172b4d]", text: "text-white", wide: false },
+  { bg: "bg-[#4f83d1]", text: "text-white", wide: false },
+  { bg: "bg-[#d6a84b]", text: "text-[#172b4d]", wide: false },
+  { bg: "bg-neutral-800", text: "text-white", wide: true },
 ];
 
-const DEPARTMENTS = [
-  {
-    name: "Worship & Choir",
-    title: "Inspiring an atmosphere of worship to God.",
-    bg: "bg-[#1555bf]",
-    text: "text-white",
-    wide: false,
-  },
-  {
-    name: "Children's Ministry",
-    title: "Partnering with parents to grow kids' faith.",
-    bg: "bg-[#172b4d]",
-    text: "text-white",
-    wide: false,
-  },
-  {
-    name: "Youth Ministry",
-    title: "Developing youth who influence culture.",
-    bg: "bg-[#4f83d1]",
-    text: "text-white",
-    wide: false,
-  },
-  {
-    name: "Outreach",
-    title: "Making an impact, locally and globally.",
-    bg: "bg-[#d6a84b]",
-    text: "text-[#172b4d]",
-    wide: false,
-  },
-  {
-    name: "Prayer & Care",
-    title: "Standing with people through every season of life.",
-    bg: "bg-neutral-800",
-    text: "text-white",
-    wide: true,
-  },
-];
-
-const PRODUCTS = [
-  {
-    name: "Amharic Study Bible",
-    category: "Books",
-    price: 650,
-    icon: BookOpen,
-  },
-  { name: "Worship Songbook", category: "Books", price: 350, icon: Book },
-  {
-    name: "Geja Kale Hiwot T-Shirt",
-    category: "Apparel",
-    price: 450,
-    icon: Shirt,
-  },
-  { name: "Church Mug", category: "Gifts", price: 250, icon: Coffee },
+const PRODUCT_META = [
+  { price: 650, icon: BookOpen },
+  { price: 350, icon: Book },
+  { price: 450, icon: Shirt },
+  { price: 250, icon: Coffee },
 ];
 
 const DONATION_AMOUNTS = [100, 500, 1000, 5000];
@@ -278,11 +158,21 @@ function PillLink({
   );
 }
 
+// opens external links (YouTube, etc.) in a new tab
+const external = (href: string) =>
+  href.startsWith("http")
+    ? ({ target: "_blank", rel: "noreferrer" } as const)
+    : {};
+
 /* ---------------------------- component ---------------------------- */
 
 export default function HomeClient({ user }: HomeClientProps) {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
+
+  // language
+  const [lang, setLang] = useState<Lang>("en");
+  const t = T[lang];
 
   // hero carousel
   const [active, setActive] = useState(0);
@@ -294,6 +184,24 @@ export default function HomeClient({ user }: HomeClientProps) {
 
   // donation amount
   const [amount, setAmount] = useState(500);
+
+  // restore the saved language after mount (avoids a hydration mismatch)
+  useEffect(() => {
+    const saved = localStorage.getItem("lang");
+    if (saved === "am" || saved === "en") setLang(saved);
+  }, []);
+
+  // put the language on <html> so menus and dialogs (rendered in portals)
+  // also pick up the Amharic font rule
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  const switchLang = () => {
+    const next: Lang = lang === "en" ? "am" : "en";
+    setLang(next);
+    localStorage.setItem("lang", next);
+  };
 
   useEffect(() => {
     if (paused) return;
@@ -311,11 +219,11 @@ export default function HomeClient({ user }: HomeClientProps) {
         fetchOptions: {
           onSuccess: () => {
             // router.replace("/login");
-            toast.success("You've signned out");
+            toast.success(t.ui.signedOut);
             router.refresh();
           },
           onError: (ctx) => {
-            toast.error(ctx.error.message || "Failed to log out");
+            toast.error(ctx.error.message || t.ui.logoutFailed);
           },
         },
       });
@@ -333,32 +241,39 @@ export default function HomeClient({ user }: HomeClientProps) {
   const onScrollCards = () => {
     const el = scroller.current;
     if (!el) return;
-    setDot(Math.round(el.scrollLeft / (el.scrollWidth / EVENTS.length)));
+    setDot(Math.round(el.scrollLeft / (el.scrollWidth / t.events.length)));
   };
 
   const slide = SLIDES[active];
+  const slideText = t.slides[active];
+
+  const navLinks = t.nav.map((label, i) => ({ label, href: NAV_HREFS[i] }));
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div lang={lang} className="min-h-screen bg-background text-foreground">
       {/* ============================ Header ============================ */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-[1700px] items-center gap-3 px-3 sm:h-20 sm:gap-4 sm:px-8">
           <Sheet>
             <SheetTrigger
               render={
-                <Button variant="ghost" size="icon" aria-label="Open menu" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t.ui.openMenu}
+                />
               }
             >
               <Menu className="size-5" />
             </SheetTrigger>
             <SheetContent side="left" className="w-72">
               <SheetHeader>
-                <SheetTitle>Menu</SheetTitle>
+                <SheetTitle>{t.ui.menu}</SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col gap-1 px-4">
-                {[{ label: "Home", href: "/" }, ...NAV_LINKS].map((l) => (
+                {[{ label: t.ui.home, href: "/" }, ...navLinks].map((l) => (
                   <Link
-                    key={l.label}
+                    key={l.href}
                     href={l.href}
                     className="rounded-md px-3 py-2 text-sm font-medium hover:bg-accent"
                   >
@@ -370,35 +285,28 @@ export default function HomeClient({ user }: HomeClientProps) {
           </Sheet>
 
           <Link href="/" className="flex shrink-0 items-center gap-2">
-            <span className="flex size-9 items-center justify-center rounded-full bg-brand text-brand-foreground">
-              <div className="size-full overflow-hidden rounded-full">
-                <img
-                  src="/logo.jpg"
-                  alt="Geja Kale Hiwot"
-                  className="size-full rounded-full object-cover"
-                />
-              </div>
+            <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-brand-foreground">
+              <img
+                src="/logo.jpg"
+                alt={t.brand}
+                className="size-full object-cover"
+              />
             </span>
             <span className="hidden leading-none sm:block">
               <span className="block text-lg font-semibold tracking-tight">
-                Geja Kale Hiwot
+                {t.brand}
               </span>
-              <span className="block text-[9px] tracking-[0.4em] text-muted-foreground">
-                CHURCH
+              <span className="mt-0.5 block text-[9px] tracking-[0.4em] text-muted-foreground">
+                {t.brandSub}
               </span>
             </span>
           </Link>
 
-          <div className="relative mx-auto w-full max-w-[410px]">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search" className="h-10 rounded-full pl-10" />
-          </div>
-
           <div className="ml-auto flex shrink-0 items-center gap-1">
             <nav className="hidden items-center lg:flex">
-              {NAV_LINKS.map((l) => (
+              {navLinks.map((l) => (
                 <Link
-                  key={l.label}
+                  key={l.href}
                   href={l.href}
                   className="px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground"
                 >
@@ -407,6 +315,16 @@ export default function HomeClient({ user }: HomeClientProps) {
               ))}
             </nav>
 
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={switchLang}
+              aria-label={t.ui.switchLang}
+              className="font-semibold"
+            >
+              {t.ui.langButton}
+            </Button>
+
             <ThemeToggle />
 
             {user ? (
@@ -414,7 +332,7 @@ export default function HomeClient({ user }: HomeClientProps) {
                 <DropdownMenuTrigger
                   render={
                     <button
-                      aria-label="Account menu"
+                      aria-label={t.ui.account}
                       className="ml-1 flex size-8 items-center justify-center overflow-hidden rounded-full bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     />
                   }
@@ -434,7 +352,7 @@ export default function HomeClient({ user }: HomeClientProps) {
                   <DropdownMenuGroup>
                     <DropdownMenuLabel>
                       <p className="text-sm font-semibold">
-                        {user.name || "there"}
+                        {user.name || t.ui.there}
                       </p>
                       <p className="text-xs font-normal text-muted-foreground">
                         {user.email}
@@ -447,7 +365,7 @@ export default function HomeClient({ user }: HomeClientProps) {
                     disabled={loggingOut}
                   >
                     <LogOut className="mr-2 size-4" />
-                    {loggingOut ? "Logging out..." : "Logout"}
+                    {loggingOut ? t.ui.loggingOut : t.ui.logout}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -456,7 +374,7 @@ export default function HomeClient({ user }: HomeClientProps) {
                 href="/login"
                 className={cn(buttonVariants(), "ml-1 rounded-full px-5")}
               >
-                Log in
+                {t.ui.login}
               </Link>
             )}
           </div>
@@ -471,7 +389,6 @@ export default function HomeClient({ user }: HomeClientProps) {
           onMouseLeave={() => setPaused(false)}
         >
           {/* hero always has a dark overlay, so its text stays white in both themes */}
-          {/* <div className="relative h-[60vh] min-h-[420px] overflow-hidden bg-neutral-900 text-white sm:h-[70vh]"> */}
           <div className="relative aspect-[4/5] max-h-[85vh] w-full overflow-hidden bg-neutral-900 text-white sm:aspect-[16/9]">
             <div
               key={active}
@@ -484,7 +401,7 @@ export default function HomeClient({ user }: HomeClientProps) {
                   ? {
                       backgroundImage: `url(${slide.image})`,
                       backgroundSize: "cover",
-                      backgroundPosition: "center",
+                      backgroundPosition: slide.position ?? "center",
                     }
                   : undefined
               }
@@ -493,7 +410,7 @@ export default function HomeClient({ user }: HomeClientProps) {
 
             {active > 0 && (
               <button
-                aria-label="Previous slide"
+                aria-label={t.ui.prevSlide}
                 onClick={() => setActive((i) => i - 1)}
                 className="absolute top-1/2 left-4 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 transition hover:bg-black/70"
               >
@@ -502,7 +419,7 @@ export default function HomeClient({ user }: HomeClientProps) {
             )}
             {active < SLIDES.length - 1 && (
               <button
-                aria-label="Next slide"
+                aria-label={t.ui.nextSlide}
                 onClick={() => setActive((i) => i + 1)}
                 className="absolute top-1/2 right-4 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 transition hover:bg-black/70"
               >
@@ -513,22 +430,26 @@ export default function HomeClient({ user }: HomeClientProps) {
             <div className="absolute inset-x-0 bottom-0 mx-auto flex max-w-5xl flex-col gap-5 p-6 pb-8 sm:flex-row sm:items-end sm:justify-between sm:p-10">
               <div>
                 <h1 className="text-2xl font-bold sm:text-3xl">
-                  {slide.title}
+                  {slideText.title}
                 </h1>
-                <p className="mt-1 text-sm text-white/90">{slide.subtitle}</p>
+                <p className="mt-1 text-sm text-white/90">
+                  {slideText.subtitle}
+                </p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <Link
-                  href={slide.primary.href}
+                  href={slide.primaryHref}
+                  {...external(slide.primaryHref)}
                   className="inline-flex h-11 items-center rounded-lg bg-white px-6 text-sm font-semibold text-black transition hover:bg-white/90"
                 >
-                  {slide.primary.label}
+                  {slideText.primary}
                 </Link>
                 <Link
-                  href={slide.secondary.href}
+                  href={slide.secondaryHref}
+                  {...external(slide.secondaryHref)}
                   className="inline-flex h-11 items-center rounded-lg bg-white/20 px-6 text-sm font-semibold text-white transition hover:bg-white/30"
                 >
-                  {slide.secondary.label}
+                  {slideText.secondary}
                 </Link>
               </div>
             </div>
@@ -538,7 +459,7 @@ export default function HomeClient({ user }: HomeClientProps) {
             {SLIDES.map((_, i) => (
               <button
                 key={i}
-                aria-label={`Go to slide ${i + 1}`}
+                aria-label={t.ui.goToSlide(i + 1)}
                 onClick={() => setActive(i)}
                 className={cn(
                   "h-2 rounded-full transition-all",
@@ -551,41 +472,41 @@ export default function HomeClient({ user }: HomeClientProps) {
 
         {/* ===================== Find your place ===================== */}
         <section id="connect" className="mx-auto max-w-7xl px-4 py-20 sm:px-8">
-          <SectionHeading
-            title="Find your place in our community"
-            subtitle="Whether you're new or have been with us for years, there's a way for you to belong and grow."
-          />
+          <SectionHeading title={t.find.title} subtitle={t.find.subtitle} />
 
           <div className="mt-14 grid sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-border">
-            {EXPERIENCES.map(({ icon: Icon, title, text, cta, href }) => (
-              <div
-                key={title}
-                className="flex min-h-[280px] flex-col justify-between p-6"
-              >
-                <div>
-                  <Icon className="size-6 text-brand" />
-                  <h3 className="mt-6 text-lg font-semibold">{title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                    {text}
-                  </p>
-                </div>
-                <Link
-                  href={href}
-                  className="mt-8 flex items-center justify-between text-sm font-semibold hover:text-brand"
+            {EXPERIENCES.map(({ icon: Icon, href }, i) => {
+              const x = t.experiences[i];
+              return (
+                <div
+                  key={href}
+                  className="flex min-h-[280px] flex-col justify-between p-6"
                 >
-                  {cta}
-                  <ChevronRight className="size-4" />
-                </Link>
-              </div>
-            ))}
+                  <div>
+                    <Icon className="size-6 text-brand" />
+                    <h3 className="mt-6 text-lg font-semibold">{x.title}</h3>
+                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                      {x.text}
+                    </p>
+                  </div>
+                  <Link
+                    href={href}
+                    className="mt-8 flex items-center justify-between text-sm font-semibold hover:text-brand"
+                  >
+                    {x.cta}
+                    <ChevronRight className="size-4" />
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         </section>
 
         {/* ========================== Events ========================== */}
         <section id="events" className="bg-muted/40 py-20">
           <SectionHeading
-            title="Upcoming events"
-            subtitle="Join us for worship, fellowship, and special gatherings throughout the year."
+            title={t.eventsSection.title}
+            subtitle={t.eventsSection.subtitle}
           />
 
           <div className="relative mx-auto mt-12 max-w-[1700px]">
@@ -594,15 +515,15 @@ export default function HomeClient({ user }: HomeClientProps) {
               onScroll={onScrollCards}
               className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:px-8 [&::-webkit-scrollbar]:hidden"
             >
-              {EVENTS.map((e) => (
+              {t.events.map((e, i) => (
                 <article
-                  key={e.title}
+                  key={i}
                   className="w-[88%] shrink-0 snap-center sm:w-[55%] lg:w-[42%]"
                 >
                   <div
                     className={cn(
                       "flex aspect-[16/9] items-end rounded-xl bg-gradient-to-br p-6 text-white",
-                      e.gradient,
+                      EVENT_GRADIENTS[i],
                     )}
                   >
                     <span className="text-2xl font-extrabold tracking-tight uppercase">
@@ -623,14 +544,14 @@ export default function HomeClient({ user }: HomeClientProps) {
             </div>
 
             <button
-              aria-label="Previous events"
+              aria-label={t.ui.prevEvents}
               onClick={() => scrollCards(-1)}
               className="absolute top-[35%] left-6 hidden size-11 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 sm:flex"
             >
               <ChevronLeft className="size-5" />
             </button>
             <button
-              aria-label="Next events"
+              aria-label={t.ui.nextEvents}
               onClick={() => scrollCards(1)}
               className="absolute top-[35%] right-6 hidden size-11 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 sm:flex"
             >
@@ -639,7 +560,7 @@ export default function HomeClient({ user }: HomeClientProps) {
           </div>
 
           <div className="mt-6 flex justify-center gap-2">
-            {EVENTS.map((_, i) => (
+            {t.events.map((_, i) => (
               <span
                 key={i}
                 className={cn(
@@ -654,14 +575,14 @@ export default function HomeClient({ user }: HomeClientProps) {
         {/* =========================== News =========================== */}
         <section id="news" className="mx-auto max-w-7xl px-4 py-20 sm:px-8">
           <SectionHeading
-            title="Latest news"
-            subtitle="Announcements and stories from our church family."
+            title={t.newsSection.title}
+            subtitle={t.newsSection.subtitle}
           />
 
           <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {NEWS.map((n) => (
+            {t.news.map((n, i) => (
               <article
-                key={n.title}
+                key={i}
                 className="flex flex-col rounded-xl border border-border bg-card p-6 text-card-foreground"
               >
                 <p className="text-xs font-medium tracking-wide text-brand uppercase">
@@ -675,7 +596,7 @@ export default function HomeClient({ user }: HomeClientProps) {
                   href="#news"
                   className="mt-5 inline-flex items-center gap-1 text-sm font-semibold hover:text-brand"
                 >
-                  Read more <ChevronRight className="size-4" />
+                  {t.ui.readMore} <ChevronRight className="size-4" />
                 </Link>
               </article>
             ))}
@@ -685,65 +606,75 @@ export default function HomeClient({ user }: HomeClientProps) {
         {/* ======================== Departments ======================== */}
         <section id="departments" className="bg-muted/40 px-4 py-20 sm:px-8">
           <SectionHeading
-            title="Our departments"
-            subtitle="Find a team where you and your family can grow in faith and serve together."
+            title={t.deptSection.title}
+            subtitle={t.deptSection.subtitle}
           />
 
           <div className="mx-auto mt-12 grid max-w-7xl gap-4 sm:grid-cols-2">
-            {DEPARTMENTS.map((d) => (
-              <div
-                key={d.name}
-                className={cn(
-                  "flex min-h-[220px] flex-col justify-between rounded-xl p-6",
-                  d.bg,
-                  d.text,
-                  d.wide && "sm:col-span-2",
-                )}
-              >
-                <div>
-                  <p className="text-sm opacity-80">{d.name}</p>
-                  <h3 className="mt-1 max-w-xl text-xl font-bold">{d.title}</h3>
+            {t.departments.map((d, i) => {
+              const s = DEPT_STYLES[i];
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    "flex min-h-[220px] flex-col justify-between rounded-xl p-6",
+                    s.bg,
+                    s.text,
+                    s.wide && "sm:col-span-2",
+                  )}
+                >
+                  <div>
+                    <p className="text-sm opacity-80">{d.name}</p>
+                    <h3 className="mt-1 max-w-xl text-xl font-bold">
+                      {d.title}
+                    </h3>
+                  </div>
+                  <div>
+                    <PillLink href="#departments">{t.ui.learnMore}</PillLink>
+                  </div>
                 </div>
-                <div>
-                  <PillLink href="#departments">Learn more</PillLink>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
         {/* ========================== Shop ========================== */}
         {/* <section id="shop" className="mx-auto max-w-7xl px-4 py-20 sm:px-8">
           <SectionHeading
-            title="From our shop"
-            subtitle="Books, apparel, and gifts. Every purchase supports our ministry."
+            title={t.shopSection.title}
+            subtitle={t.shopSection.subtitle}
           />
 
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {PRODUCTS.map(({ name, category, price, icon: Icon }) => (
-              <div
-                key={name}
-                className="flex flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground"
-              >
-                <div className="flex aspect-square items-center justify-center bg-secondary">
-                  <Icon className="size-14 text-brand" />
+            {t.products.map((p, i) => {
+              const { price, icon: Icon } = PRODUCT_META[i];
+              return (
+                <div
+                  key={i}
+                  className="flex flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground"
+                >
+                  <div className="flex aspect-square items-center justify-center bg-secondary">
+                    <Icon className="size-14 text-brand" />
+                  </div>
+                  <div className="flex flex-1 flex-col p-4">
+                    <p className="text-xs text-muted-foreground">
+                      {p.category}
+                    </p>
+                    <h3 className="mt-1 font-semibold">{p.name}</h3>
+                    <p className="mt-1 text-sm font-medium text-brand">
+                      {price} {t.ui.currency}
+                    </p>
+                    <Button
+                      className="mt-4 w-full"
+                      onClick={() => toast.info(t.ui.orderSoon)}
+                    >
+                      <ShoppingBag className="mr-2 size-4" />
+                      {t.ui.order}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex flex-1 flex-col p-4">
-                  <p className="text-xs text-muted-foreground">{category}</p>
-                  <h3 className="mt-1 font-semibold">{name}</h3>
-                  <p className="mt-1 text-sm font-medium text-brand">
-                    {price} ETB
-                  </p>
-                  <Button
-                    className="mt-4 w-full"
-                    onClick={() => toast.info("Ordering isn't connected yet.")}
-                  >
-                    <ShoppingBag className="mr-2 size-4" />
-                    Order
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section> */}
 
@@ -752,11 +683,10 @@ export default function HomeClient({ user }: HomeClientProps) {
           <div className="mx-auto max-w-5xl rounded-2xl bg-primary p-8 text-center text-primary-foreground sm:p-12">
             <HandHeart className="mx-auto size-10" />
             <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
-              Support the mission
+              {t.donate.title}
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm opacity-90">
-              Your generosity helps us serve our community, support families in
-              need, and spread the gospel.
+              {t.donate.text}
             </p>
 
             <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -771,18 +701,16 @@ export default function HomeClient({ user }: HomeClientProps) {
                       : "bg-primary-foreground/15 hover:bg-primary-foreground/25",
                   )}
                 >
-                  {a} ETB
+                  {a} {t.ui.currency}
                 </button>
               ))}
             </div>
 
             <button
-              onClick={() =>
-                toast.info(`Donations aren't connected yet (${amount} ETB).`)
-              }
+              onClick={() => toast.info(t.ui.donateSoon(amount))}
               className="mt-6 inline-flex h-12 items-center rounded-lg bg-primary-foreground px-10 text-sm font-bold text-primary transition hover:opacity-90"
             >
-              Donate {amount} ETB
+              {t.ui.donateAmount(amount)}
             </button>
           </div>
         </section>
@@ -792,8 +720,7 @@ export default function HomeClient({ user }: HomeClientProps) {
         id="about"
         className="border-t border-border px-4 py-10 text-center text-sm text-muted-foreground"
       >
-        © {new Date().getFullYear()} Geja Kale Hiwot Church. All rights
-        reserved.
+        {t.ui.footer(new Date().getFullYear())}
       </footer>
     </div>
   );
