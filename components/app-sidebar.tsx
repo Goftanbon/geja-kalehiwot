@@ -46,12 +46,12 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/admin",
       icon: <LayoutDashboardIcon />,
     },
     {
       title: "Carousel",
-      url: "#",
+      url: "/admin/carousel",
       icon: <ListIcon />,
     },
     {

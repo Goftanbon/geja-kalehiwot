@@ -76,3 +76,47 @@ model Verification {
   @@index([identifier])
   @@map("verification")
 }
+
+enum SlideGradient {
+  BLUE_DARK
+  BLUE
+  BLUE_GOLD
+}
+
+model HomeSlide {
+  id String @id @default(cuid())
+
+  // English content
+  titleEn       String
+  subtitleEn    String @db.Text
+  primaryLabelEn   String
+  secondaryLabelEn String?
+
+  // Amharic content
+  titleAm       String
+  subtitleAm    String @db.Text
+  primaryLabelAm   String
+  secondaryLabelAm String?
+
+  // Button destinations
+  primaryHref   String
+  secondaryHref String?
+
+  // Background
+  image       String?
+  imageAltEn  String?
+  imageAltAm  String?
+  imagePosition String @default("center")
+
+  // Visual styling
+  gradient SlideGradient @default(BLUE_DARK)
+
+  // Management
+  sortOrder   Int      @default(0)
+  isPublished Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isPublished, sortOrder])
+}
