@@ -77,43 +77,50 @@ model Verification {
   @@map("verification")
 }
 
+
 enum SlideGradient {
   BLUE_DARK
   BLUE
   BLUE_GOLD
 }
 
+enum SlideMediaType {
+  IMAGE
+  VIDEO
+}
+
 model HomeSlide {
   id String @id @default(cuid())
 
   // English content
-  titleEn       String
-  subtitleEn    String @db.Text
-  primaryLabelEn   String
-  secondaryLabelEn String?
+  titleEn           String
+  subtitleEn        String @db.Text
+  primaryLabelEn    String
+  secondaryLabelEn  String?
 
   // Amharic content
-  titleAm       String
-  subtitleAm    String @db.Text
-  primaryLabelAm   String
-  secondaryLabelAm String?
+  titleAm           String
+  subtitleAm        String @db.Text
+  primaryLabelAm    String
+  secondaryLabelAm  String?
 
   // Button destinations
   primaryHref   String
   secondaryHref String?
 
-  // Background
+  // Background media
+  mediaType   SlideMediaType @default(IMAGE)
   image       String?
-  imageAltEn  String?
-  imageAltAm  String?
-  imagePosition String @default("center")
+  imageAlt    String?
+  video       String?
+  videoPoster String?
 
   // Visual styling
   gradient SlideGradient @default(BLUE_DARK)
 
   // Management
-  sortOrder   Int      @default(0)
-  isPublished Boolean  @default(false)
+  sortOrder   Int     @default(0)
+  isPublished Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
