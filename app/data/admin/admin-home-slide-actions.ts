@@ -15,17 +15,50 @@ export async function deleteHomeSlide(id: string): Promise<APIResponse> {
   await requireAdmin();
 
   try {
-    await prisma.homeSlide.delete({ where: { id } });
-    refresh();
+    const result = await prisma.$transaction(async (tx) => {
+      // Check how many carousel slides exist
+      const slideCount = await tx.homeSlide.count();
 
-    return {
-      status: "success",
-      message: "Carousel slide deleted",
-    };
+      // Never allow deleting the last slide
+      if (slideCount <= 1) {
+        return {
+          status: "error" as const,
+          message: "You cannot delete the last carousel slide.",
+        };
+      }
+
+      // Check whether the requested slide exists
+      const slide = await tx.homeSlide.findUnique({
+        where: { id },
+        select: { id: true },
+      });
+
+      if (!slide) {
+        return {
+          status: "error" as const,
+          message: "Carousel slide not found.",
+        };
+      }
+
+      await tx.homeSlide.delete({
+        where: { id },
+      });
+
+      return {
+        status: "success" as const,
+        message: "Carousel slide deleted successfully.",
+      };
+    });
+
+    if (result.status === "success") {
+      refresh();
+    }
+
+    return result;
   } catch {
     return {
       status: "error",
-      message: "Failed to delete carousel slide",
+      message: "Failed to delete carousel slide.",
     };
   }
 }
