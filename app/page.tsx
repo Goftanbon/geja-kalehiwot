@@ -1,8 +1,12 @@
+import { getPublishedHomeSlides } from "@/app/data/user/home-slides";
 import { getSession } from "@/lib/get-session";
 import HomeClient from "./_components/HomeClient";
 
 export default async function Home() {
-  const session = await getSession();
+  const [session, slides] = await Promise.all([
+    getSession(),
+    getPublishedHomeSlides().catch(() => null),
+  ]);
 
   return (
     <HomeClient
@@ -15,6 +19,7 @@ export default async function Home() {
             }
           : null
       }
+      slides={slides}
     />
   );
 }

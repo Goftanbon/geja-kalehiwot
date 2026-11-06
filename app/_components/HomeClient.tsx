@@ -39,9 +39,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { T, type Lang } from "@/lib/translations";
+import { useContructUrl } from "@/hooks/use-construct-url";
+import type { PublishedHomeSlide } from "@/app/data/user/home-slides";
+import { HeroCarouselSkeleton } from "./HeroCarouselSkeleton";
 
 type HomeClientProps = {
   user: {
@@ -49,9 +52,14 @@ type HomeClientProps = {
     email: string;
     image?: string | null;
   } | null;
+  slides?: PublishedHomeSlide[] | null;
 };
 
-
+const SLIDE_GRADIENTS: Record<string, string> = {
+  BLUE_DARK: "from-[#172b4d] via-[#1555bf] to-black",
+  BLUE: "from-[#1555bf] via-[#4f83d1] to-[#172b4d]",
+  BLUE_GOLD: "from-[#172b4d] via-[#1555bf] to-[#d6a84b]",
+};
 
 /* ================================================================== */
 /* STATIC DATA (no text here, only links, images, icons, colors)        */
@@ -166,7 +174,7 @@ const external = (href: string) =>
 
 /* ---------------------------- component ---------------------------- */
 
-export default function HomeClient({ user }: HomeClientProps) {
+export default function HomeClient({ user, slides }: HomeClientProps) {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -174,9 +182,63 @@ export default function HomeClient({ user }: HomeClientProps) {
   const [lang, setLang] = useState<Lang>("en");
   const t = T[lang];
 
+  // Process DB slides or fallback to null (which uses static SLIDES & t.slides)
+  const activeSlides = useMemo(() => {
+    if (!slides || slides.length === 0) return null;
+
+    return slides.map((s) => {
+      // If image doesn't exist on db, fallback to /hero3.jpg
+      const rawImage = s.image?.trim() || null;
+      const imageUrl = rawImage ? useContructUrl(rawImage) : "/hero3.jpg";
+
+      // Secondary button condition:
+      // Must have secondaryHref AND both English and Amharic labels. If either is missing, do not show secondary button.
+      const secEn = s.secondaryLabelEn?.trim();
+      const secAm = s.secondaryLabelAm?.trim();
+      const secHref = s.secondaryHref?.trim();
+      const showSecondary = Boolean(secHref && secEn && secAm);
+
+      return {
+        id: s.id,
+        image: imageUrl,
+        gradient:
+          SLIDE_GRADIENTS[s.gradient] ||
+          "from-[#172b4d] via-[#1555bf] to-black",
+        mediaType: s.mediaType,
+        video: s.video ? useContructUrl(s.video) : null,
+        primaryHref: s.primaryHref,
+        secondaryHref: secHref || "",
+        showSecondary,
+        en: {
+          title: s.titleEn,
+          subtitle: s.subtitleEn,
+          primary: s.primaryLabelEn,
+          secondary: secEn || "",
+        },
+        am: {
+          title: s.titleAm,
+          subtitle: s.subtitleAm,
+          primary: s.primaryLabelAm,
+          secondary: secAm || "",
+        },
+      };
+    });
+  }, [slides]);
+
+  const totalSlides = activeSlides ? activeSlides.length : SLIDES.length;
+
   // hero carousel
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
+  const currentActive = active >= totalSlides ? 0 : active;
+
+  // Track mount / data loading to prevent flashing the fallback carousel on first load
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isLoading = !mounted || slides === undefined;
 
   // events carousel
   const scroller = useRef<HTMLDivElement>(null);
@@ -204,13 +266,13 @@ export default function HomeClient({ user }: HomeClientProps) {
   };
 
   useEffect(() => {
-    if (paused) return;
+    if (paused || totalSlides <= 1) return;
     const id = setInterval(
-      () => setActive((i) => (i + 1) % SLIDES.length),
+      () => setActive((i) => (i + 1) % totalSlides),
       15000,
     );
     return () => clearInterval(id);
-  }, [paused]);
+  }, [paused, totalSlides]);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -244,8 +306,23 @@ export default function HomeClient({ user }: HomeClientProps) {
     setDot(Math.round(el.scrollLeft / (el.scrollWidth / t.events.length)));
   };
 
-  const slide = SLIDES[active];
-  const slideText = t.slides[active];
+  const currentSlideData = activeSlides ? activeSlides[currentActive] : null;
+  const staticSlide = SLIDES[currentActive] || SLIDES[0];
+  const staticText = t.slides[currentActive] || t.slides[0];
+
+  const slideImage = currentSlideData ? currentSlideData.image : staticSlide.image;
+  const slideGradient = currentSlideData ? currentSlideData.gradient : staticSlide.gradient;
+  const slidePrimaryHref = currentSlideData ? currentSlideData.primaryHref : staticSlide.primaryHref;
+  const slideSecondaryHref = currentSlideData ? currentSlideData.secondaryHref : staticSlide.secondaryHref;
+
+  const slideTitle = currentSlideData ? currentSlideData[lang].title : staticText.title;
+  const slideSubtitle = currentSlideData ? currentSlideData[lang].subtitle : staticText.subtitle;
+  const slidePrimaryLabel = currentSlideData ? currentSlideData[lang].primary : staticText.primary;
+  const slideSecondaryLabel = currentSlideData ? currentSlideData[lang].secondary : staticText.secondary;
+
+  const showSecondaryBtn = currentSlideData
+    ? currentSlideData.showSecondary
+    : Boolean(staticSlide.secondaryHref && staticText.secondary);
 
   const navLinks = t.nav.map((label, i) => ({ label, href: NAV_HREFS[i] }));
 
@@ -383,92 +460,115 @@ export default function HomeClient({ user }: HomeClientProps) {
 
       <main>
         {/* ============================ Hero ============================ */}
-        <section
-          className="mx-auto max-w-[1700px] sm:px-8"
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
-        >
-          {/* hero always has a dark overlay, so its text stays white in both themes */}
-          <div className="relative aspect-[4/5] max-h-[85vh] w-full overflow-hidden bg-neutral-900 text-white sm:aspect-[16/9]">
-            <div
-              key={active}
-              className={cn(
-                "absolute inset-0 animate-in fade-in duration-700",
-                !slide.image && `bg-gradient-to-br ${slide.gradient}`,
+        {isLoading ? (
+          <HeroCarouselSkeleton />
+        ) : (
+          <section
+            className="mx-auto max-w-[1700px] sm:px-8"
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
+          >
+            {/* hero always has a dark overlay, so its text stays white in both themes */}
+            <div className="relative aspect-[4/5] max-h-[85vh] w-full overflow-hidden bg-neutral-900 text-white sm:aspect-[16/9]">
+              {currentSlideData?.mediaType === "VIDEO" && currentSlideData.video ? (
+                <video
+                  key={currentActive}
+                  src={currentSlideData.video}
+                  poster={slideImage}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="absolute inset-0 size-full object-cover animate-in fade-in duration-700"
+                />
+              ) : (
+                <div
+                  key={currentActive}
+                  className={cn(
+                    "absolute inset-0 animate-in fade-in duration-700",
+                    !slideImage && `bg-gradient-to-br ${slideGradient}`,
+                  )}
+                  style={
+                    slideImage
+                      ? {
+                          backgroundImage: `url(${slideImage})`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }
+                      : undefined
+                  }
+                />
               )}
-              style={
-                slide.image
-                  ? {
-                      backgroundImage: `url(${slide.image})`,
-                      backgroundSize: "cover",
-                      backgroundPosition: slide.position ?? "center",
-                    }
-                  : undefined
-              }
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
 
-            {active > 0 && (
-              <button
-                aria-label={t.ui.prevSlide}
-                onClick={() => setActive((i) => i - 1)}
-                className="absolute top-1/2 left-4 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 transition hover:bg-black/70"
-              >
-                <ChevronLeft className="size-5" />
-              </button>
-            )}
-            {active < SLIDES.length - 1 && (
-              <button
-                aria-label={t.ui.nextSlide}
-                onClick={() => setActive((i) => i + 1)}
-                className="absolute top-1/2 right-4 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 transition hover:bg-black/70"
-              >
-                <ChevronRight className="size-5" />
-              </button>
-            )}
+              {currentActive > 0 && (
+                <button
+                  aria-label={t.ui.prevSlide}
+                  onClick={() => setActive((i) => i - 1)}
+                  className="absolute top-1/2 left-4 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 transition hover:bg-black/70"
+                >
+                  <ChevronLeft className="size-5" />
+                </button>
+              )}
+              {currentActive < totalSlides - 1 && (
+                <button
+                  aria-label={t.ui.nextSlide}
+                  onClick={() => setActive((i) => i + 1)}
+                  className="absolute top-1/2 right-4 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 transition hover:bg-black/70"
+                >
+                  <ChevronRight className="size-5" />
+                </button>
+              )}
 
-            <div className="absolute inset-x-0 bottom-0 mx-auto flex max-w-5xl flex-col gap-5 p-6 pb-8 sm:flex-row sm:items-end sm:justify-between sm:p-10">
-              <div>
-                <h1 className="text-2xl font-bold sm:text-3xl">
-                  {slideText.title}
-                </h1>
-                <p className="mt-1 text-sm text-white/90">
-                  {slideText.subtitle}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href={slide.primaryHref}
-                  {...external(slide.primaryHref)}
-                  className="inline-flex h-11 items-center rounded-lg bg-white px-6 text-sm font-semibold text-black transition hover:bg-white/90"
-                >
-                  {slideText.primary}
-                </Link>
-                <Link
-                  href={slide.secondaryHref}
-                  {...external(slide.secondaryHref)}
-                  className="inline-flex h-11 items-center rounded-lg bg-white/20 px-6 text-sm font-semibold text-white transition hover:bg-white/30"
-                >
-                  {slideText.secondary}
-                </Link>
+              <div className="absolute inset-x-0 bottom-0 mx-auto flex max-w-5xl flex-col gap-5 p-6 pb-8 sm:flex-row sm:items-end sm:justify-between sm:p-10">
+                <div>
+                  <h1 className="text-2xl font-bold sm:text-3xl">
+                    {slideTitle}
+                  </h1>
+                  <p className="mt-1 text-sm text-white/90">
+                    {slideSubtitle}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {slidePrimaryHref && slidePrimaryLabel && (
+                    <Link
+                      href={slidePrimaryHref}
+                      {...external(slidePrimaryHref)}
+                      className="inline-flex h-11 items-center rounded-lg bg-white px-6 text-sm font-semibold text-black transition hover:bg-white/90"
+                    >
+                      {slidePrimaryLabel}
+                    </Link>
+                  )}
+                  {showSecondaryBtn && (
+                    <Link
+                      href={slideSecondaryHref}
+                      {...external(slideSecondaryHref)}
+                      className="inline-flex h-11 items-center rounded-lg bg-white/20 px-6 text-sm font-semibold text-white transition hover:bg-white/30"
+                    >
+                      {slideSecondaryLabel}
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="mt-5 flex justify-center gap-2">
-            {SLIDES.map((_, i) => (
-              <button
-                key={i}
-                aria-label={t.ui.goToSlide(i + 1)}
-                onClick={() => setActive(i)}
-                className={cn(
-                  "h-2 rounded-full transition-all",
-                  i === active ? "w-4 bg-foreground" : "w-2 bg-foreground/30",
-                )}
-              />
-            ))}
-          </div>
-        </section>
+            {totalSlides > 1 && (
+              <div className="mt-5 flex justify-center gap-2">
+                {Array.from({ length: totalSlides }).map((_, i) => (
+                  <button
+                    key={i}
+                    aria-label={t.ui.goToSlide(i + 1)}
+                    onClick={() => setActive(i)}
+                    className={cn(
+                      "h-2 rounded-full transition-all",
+                      i === currentActive ? "w-4 bg-foreground" : "w-2 bg-foreground/30",
+                    )}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* ===================== Find your place ===================== */}
         <section id="connect" className="mx-auto max-w-7xl px-4 py-20 sm:px-8">
