@@ -127,3 +127,45 @@ model HomeSlide {
 
   @@index([isPublished, sortOrder])
 }
+
+enum EventCategory {
+  WORSHIP
+  CONFERENCE
+  YOUTH
+  OUTREACH
+  PRAYER
+  COMMUNITY
+  OTHER
+}
+
+model Event {
+  id            String        @id @default(cuid())
+
+  titleEn       String
+  titleAm       String?
+  slug          String        @unique
+  descriptionEn String        @db.Text
+  descriptionAm String?       @db.Text
+
+  category      EventCategory @default(OTHER)
+
+  startDate     DateTime
+  endDate       DateTime?
+  isAllDay      Boolean       @default(false)
+
+  locationEn    String?
+  locationAm    String?
+  address       String?
+  mapUrl        String?
+
+  image         String?
+  imageAlt      String?
+
+  isPublished   Boolean       @default(false)
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([isPublished, startDate])
+  @@index([category])
+}

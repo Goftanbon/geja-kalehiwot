@@ -33,7 +33,7 @@ import {
   CommandIcon,
   Building,
   Newspaper,
-  CalendarX,
+  CalendarDays,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -56,8 +56,8 @@ const data = {
     },
     {
       title: "Event",
-      url: "#",
-      icon: <CalendarX />,
+      url: "/admin/event",
+      icon: <CalendarDays />,
     },
     {
       title: "News",

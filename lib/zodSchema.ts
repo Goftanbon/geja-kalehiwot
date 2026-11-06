@@ -124,3 +124,50 @@ export const homeSlideSchema = z
 
 export type HomeSlideFormValues = z.input<typeof homeSlideSchema>;
 export type HomeSlideSchemaType = z.output<typeof homeSlideSchema>;
+
+export const eventCategories = [
+  "WORSHIP",
+  "CONFERENCE",
+  "YOUTH",
+  "OUTREACH",
+  "PRAYER",
+  "COMMUNITY",
+  "OTHER",
+] as const;
+
+export const eventSchema = z.object({
+  titleEn: z
+    .string()
+    .trim()
+    .min(3, "Title (English) must be at least 3 characters")
+    .max(100),
+  titleAm: z
+    .string()
+    .trim()
+    .min(3, "Title (Amharic) must be at least 3 characters")
+    .max(100),
+  slug: z
+    .string()
+    .trim()
+    .min(2, "Slug must be at least 2 characters")
+    .max(100)
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      "Slug must only contain lowercase letters, numbers, and hyphens",
+    ),
+  descriptionEn: z
+    .string()
+    .trim()
+    .min(3, "Description (English) must be at least 3 characters"),
+  descriptionAm: z
+    .string()
+    .trim()
+    .min(3, "Description (Amharic) must be at least 3 characters"),
+  category: z.enum(eventCategories),
+  startDate: z.string().min(1, "Start date and time is required"),
+  image: z.string().optional(),
+  isPublished: z.boolean().default(false),
+});
+
+export type EventFormValues = z.input<typeof eventSchema>;
+export type EventSchemaType = z.output<typeof eventSchema>;
