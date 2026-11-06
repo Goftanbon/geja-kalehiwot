@@ -28,6 +28,28 @@ export default function Loading() {
 
       <main>
         <HeroCarouselSkeleton />
+
+        {/* Events skeleton */}
+        <section className="bg-muted/40 py-20 mt-8">
+          <div className="mx-auto max-w-3xl text-center space-y-3">
+            <div className="mx-auto h-8 w-48 rounded-lg bg-muted animate-pulse" />
+            <div className="mx-auto h-4 w-80 rounded bg-muted/60 animate-pulse" />
+          </div>
+          <div className="relative mx-auto mt-12 max-w-[1700px]">
+            <div className="flex gap-5 overflow-hidden px-4 pb-2 sm:px-8">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="w-[88%] shrink-0 sm:w-[55%] lg:w-[42%]"
+                >
+                  <div className="aspect-[16/9] w-full rounded-xl bg-muted animate-pulse" />
+                  <div className="mt-3 h-5 w-3/4 rounded bg-muted animate-pulse" />
+                  <div className="mt-2 h-4 w-1/2 rounded bg-muted/60 animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   );

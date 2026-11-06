@@ -1,11 +1,13 @@
 import { getPublishedHomeSlides } from "@/app/data/user/home-slides";
+import { getUpcomingHomeEvents } from "@/app/data/user/home-events";
 import { getSession } from "@/lib/get-session";
 import HomeClient from "./_components/HomeClient";
 
 export default async function Home() {
-  const [session, slides] = await Promise.all([
+  const [session, slides, events] = await Promise.all([
     getSession(),
     getPublishedHomeSlides().catch(() => null),
+    getUpcomingHomeEvents().catch(() => null),
   ]);
 
   return (
@@ -20,6 +22,7 @@ export default async function Home() {
           : null
       }
       slides={slides}
+      events={events}
     />
   );
 }

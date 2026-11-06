@@ -82,25 +82,10 @@ export const en = {
     title: "Upcoming events",
     subtitle:
       "Join us for worship, fellowship, and special gatherings throughout the year.",
+    noEvents: "No upcoming events scheduled right now.",
+    noEventsSubtitle:
+      "Please check back soon or stay tuned with our weekly church announcements.",
   },
-  events: [
-    {
-      title: "Sunday Worship Service",
-      date: "Every Sunday, 8:00 AM",
-      place: "Main Sanctuary",
-    },
-    { title: "Youth Conference", date: "Nov 21, 2026", place: "Main Hall" },
-    {
-      title: "Community Outreach Day",
-      date: "Dec 5, 2026",
-      place: "Addis Ababa",
-    },
-    {
-      title: "Genna Celebration",
-      date: "Jan 7, 2027",
-      place: "Main Sanctuary",
-    },
-  ],
   newsSection: {
     title: "Latest news",
     subtitle: "Announcements and stories from our church family.",

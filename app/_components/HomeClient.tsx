@@ -24,12 +24,12 @@ import {
   Book,
   BookOpen,
   CalendarDays,
+  CalendarX,
   ChevronLeft,
   ChevronRight,
   Coffee,
   HandHeart,
   LogOut,
-  MapPin,
   Menu,
   Newspaper,
   ShoppingBag,
@@ -44,6 +44,7 @@ import { toast } from "sonner";
 import { T, type Lang } from "@/lib/translations";
 import { useContructUrl } from "@/hooks/use-construct-url";
 import type { PublishedHomeSlide } from "@/app/data/user/home-slides";
+import type { UpcomingHomeEvent } from "@/app/data/user/home-events";
 import { HeroCarouselSkeleton } from "./HeroCarouselSkeleton";
 
 type HomeClientProps = {
@@ -53,6 +54,7 @@ type HomeClientProps = {
     image?: string | null;
   } | null;
   slides?: PublishedHomeSlide[] | null;
+  events?: UpcomingHomeEvent[] | null;
 };
 
 const SLIDE_GRADIENTS: Record<string, string> = {
@@ -172,9 +174,32 @@ const external = (href: string) =>
     ? ({ target: "_blank", rel: "noreferrer" } as const)
     : {};
 
+function formatEventDate(date: Date | string, lang: Lang): string {
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+
+  const timeStr = d.toLocaleTimeString(lang === "am" ? "am-ET" : "en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  const dateStr = d.toLocaleDateString(lang === "am" ? "am-ET" : "en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  return `${dateStr} · ${timeStr}`;
+}
+
 /* ---------------------------- component ---------------------------- */
 
-export default function HomeClient({ user, slides }: HomeClientProps) {
+export default function HomeClient({
+  user,
+  slides,
+  events,
+}: HomeClientProps) {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -294,6 +319,10 @@ export default function HomeClient({ user, slides }: HomeClientProps) {
     }
   };
 
+  const isEventsLoading = !mounted || events === undefined;
+  const eventList = events ?? [];
+  const eventCount = eventList.length;
+
   const scrollCards = (dir: 1 | -1) => {
     const el = scroller.current;
     if (!el) return;
@@ -302,8 +331,8 @@ export default function HomeClient({ user, slides }: HomeClientProps) {
 
   const onScrollCards = () => {
     const el = scroller.current;
-    if (!el) return;
-    setDot(Math.round(el.scrollLeft / (el.scrollWidth / t.events.length)));
+    if (!el || eventCount === 0) return;
+    setDot(Math.round(el.scrollLeft / (el.scrollWidth / eventCount)));
   };
 
   const currentSlideData = activeSlides ? activeSlides[currentActive] : null;
@@ -609,67 +638,121 @@ export default function HomeClient({ user, slides }: HomeClientProps) {
             subtitle={t.eventsSection.subtitle}
           />
 
-          <div className="relative mx-auto mt-12 max-w-[1700px]">
-            <div
-              ref={scroller}
-              onScroll={onScrollCards}
-              className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:px-8 [&::-webkit-scrollbar]:hidden"
-            >
-              {t.events.map((e, i) => (
-                <article
-                  key={i}
-                  className="w-[88%] shrink-0 snap-center sm:w-[55%] lg:w-[42%]"
-                >
+          {isEventsLoading ? (
+            <div className="relative mx-auto mt-12 max-w-[1700px]">
+              <div className="flex gap-5 overflow-hidden px-4 pb-2 sm:px-8">
+                {Array.from({ length: 3 }).map((_, i) => (
                   <div
-                    className={cn(
-                      "flex aspect-[16/9] items-end rounded-xl bg-gradient-to-br p-6 text-white",
-                      EVENT_GRADIENTS[i],
-                    )}
+                    key={i}
+                    className="w-[88%] shrink-0 sm:w-[55%] lg:w-[42%]"
                   >
-                    <span className="text-2xl font-extrabold tracking-tight uppercase">
-                      {e.title}
-                    </span>
+                    <div className="aspect-[16/9] w-full rounded-xl bg-muted animate-pulse" />
+                    <div className="mt-3 h-5 w-3/4 rounded bg-muted animate-pulse" />
+                    <div className="mt-2 h-4 w-1/2 rounded bg-muted/60 animate-pulse" />
                   </div>
-                  <h3 className="mt-3 font-semibold">{e.title}</h3>
-                  <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <CalendarDays className="size-3.5" />
-                    {e.date}
-                  </p>
-                  <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <MapPin className="size-3.5" />
-                    {e.place}
-                  </p>
-                </article>
-              ))}
+                ))}
+              </div>
             </div>
+          ) : eventCount === 0 ? (
+            <div className="mx-auto mt-12 max-w-md rounded-2xl border border-dashed border-border bg-card/60 p-8 text-center sm:p-12">
+              <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <CalendarX className="size-7" />
+              </div>
+              <h3 className="mt-4 text-lg font-semibold">
+                {t.eventsSection.noEvents}
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                {t.eventsSection.noEventsSubtitle}
+              </p>
+            </div>
+          ) : (
+            <div className="relative mx-auto mt-12 max-w-[1700px]">
+              <div
+                ref={scroller}
+                onScroll={onScrollCards}
+                className="flex snap-x snap-mandatory gap-5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:px-8 [&::-webkit-scrollbar]:hidden"
+              >
+                {eventList.map((e, i) => {
+                  const title =
+                    lang === "am" && e.titleAm ? e.titleAm : e.titleEn;
+                  const formattedDate = formatEventDate(e.startDate, lang);
+                  const imageUrl = e.image ? useContructUrl(e.image) : null;
 
-            <button
-              aria-label={t.ui.prevEvents}
-              onClick={() => scrollCards(-1)}
-              className="absolute top-[35%] left-6 hidden size-11 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 sm:flex"
-            >
-              <ChevronLeft className="size-5" />
-            </button>
-            <button
-              aria-label={t.ui.nextEvents}
-              onClick={() => scrollCards(1)}
-              className="absolute top-[35%] right-6 hidden size-11 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 sm:flex"
-            >
-              <ChevronRight className="size-5" />
-            </button>
-          </div>
+                  return (
+                    <article
+                      key={e.id}
+                      className="w-[88%] shrink-0 snap-center sm:w-[55%] lg:w-[42%]"
+                    >
+                      <div
+                        className={cn(
+                          "relative flex aspect-[16/9] overflow-hidden rounded-xl bg-gradient-to-br text-white",
+                          !imageUrl &&
+                            EVENT_GRADIENTS[i % EVENT_GRADIENTS.length],
+                        )}
+                      >
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={title}
+                            loading="lazy"
+                            className="size-full object-cover transition duration-500 hover:scale-105"
+                          />
+                        ) : (
+                          <div className="flex size-full items-end p-6">
+                            <span className="text-2xl font-extrabold tracking-tight uppercase">
+                              {title}
+                            </span>
+                          </div>
+                        )}
+                      </div>
 
-          <div className="mt-6 flex justify-center gap-2">
-            {t.events.map((_, i) => (
-              <span
-                key={i}
-                className={cn(
-                  "h-2 rounded-full transition-all",
-                  i === dot ? "w-4 bg-foreground" : "w-2 bg-foreground/30",
-                )}
-              />
-            ))}
-          </div>
+                      {/* Format: Title first, under it day, date, time */}
+                      <h3 className="mt-3 text-lg font-semibold leading-tight line-clamp-1">
+                        {title}
+                      </h3>
+                      <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <CalendarDays className="size-3.5 shrink-0 text-brand" />
+                        <span>{formattedDate}</span>
+                      </p>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {eventCount > 1 && (
+                <>
+                  <button
+                    aria-label={t.ui.prevEvents}
+                    onClick={() => scrollCards(-1)}
+                    className="absolute top-[35%] left-6 hidden size-11 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 sm:flex"
+                  >
+                    <ChevronLeft className="size-5" />
+                  </button>
+                  <button
+                    aria-label={t.ui.nextEvents}
+                    onClick={() => scrollCards(1)}
+                    className="absolute top-[35%] right-6 hidden size-11 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 sm:flex"
+                  >
+                    <ChevronRight className="size-5" />
+                  </button>
+                </>
+              )}
+
+              {eventCount > 1 && (
+                <div className="mt-6 flex justify-center gap-2">
+                  {eventList.map((_, i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        "h-2 rounded-full transition-all",
+                        i === dot ? "w-4 bg-foreground" : "w-2 bg-foreground/30",
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* =========================== News =========================== */}
