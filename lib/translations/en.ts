@@ -26,6 +26,8 @@ export const en = {
     nextEvents: "Next events",
     switchLang: "Switch language",
     langButton: "አማ",
+    backToNews: "Back to news",
+    backHome: "Back to home",
     footer: (y: number) =>
       `© ${y} Geja Kale Hiwot Church. All rights reserved.`,
   },
@@ -89,27 +91,10 @@ export const en = {
   newsSection: {
     title: "Latest news",
     subtitle: "Announcements and stories from our church family.",
+    noNews: "No news announcements right now.",
+    noNewsSubtitle:
+      "Please check back soon for updates, stories, and notices from our church.",
   },
-  news: [
-    {
-      title: "New season of Sunday school begins",
-      date: "Nov 3, 2026",
-      excerpt:
-        "Registration is now open for children and teens. Families can sign up after any service.",
-    },
-    {
-      title: "Choir announces annual concert",
-      date: "Oct 28, 2026",
-      excerpt:
-        "An evening of worship music with guest ministers and the full choir.",
-    },
-    {
-      title: "Outreach team reaches 500 families",
-      date: "Oct 15, 2026",
-      excerpt:
-        "Thanks to your generosity, food and supplies were delivered across the city this month.",
-    },
-  ],
   deptSection: {
     title: "Our departments",
     subtitle:

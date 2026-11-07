@@ -45,7 +45,9 @@ import { T, type Lang } from "@/lib/translations";
 import { useContructUrl } from "@/hooks/use-construct-url";
 import type { PublishedHomeSlide } from "@/app/data/user/home-slides";
 import type { UpcomingHomeEvent } from "@/app/data/user/home-events";
+import type { PublishedHomeNewsItem } from "@/app/data/user/home-news";
 import { HeroCarouselSkeleton } from "./HeroCarouselSkeleton";
+import { PublicNavbar } from "./PublicNavbar";
 
 type HomeClientProps = {
   user: {
@@ -55,6 +57,7 @@ type HomeClientProps = {
   } | null;
   slides?: PublishedHomeSlide[] | null;
   events?: UpcomingHomeEvent[] | null;
+  news?: PublishedHomeNewsItem[] | null;
 };
 
 const SLIDE_GRADIENTS: Record<string, string> = {
@@ -193,12 +196,34 @@ function formatEventDate(date: Date | string, lang: Lang): string {
   return `${dateStr} · ${timeStr}`;
 }
 
+function formatNewsDate(date: Date | string, lang: Lang): string {
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+
+  if (lang === "am") {
+    return d.toLocaleDateString("am-ET", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  return d
+    .toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })
+    .toUpperCase();
+}
+
 /* ---------------------------- component ---------------------------- */
 
 export default function HomeClient({
   user,
   slides,
   events,
+  news,
 }: HomeClientProps) {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -323,6 +348,10 @@ export default function HomeClient({
   const eventList = events ?? [];
   const eventCount = eventList.length;
 
+  const isNewsLoading = !mounted || news === undefined;
+  const newsList = news ?? [];
+  const newsCount = newsList.length;
+
   const scrollCards = (dir: 1 | -1) => {
     const el = scroller.current;
     if (!el) return;
@@ -358,134 +387,7 @@ export default function HomeClient({
   return (
     <div lang={lang} className="min-h-screen bg-background text-foreground">
       {/* ============================ Header ============================ */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-[1700px] items-center gap-3 px-3 sm:h-20 sm:gap-4 sm:px-8">
-          <Sheet>
-            <SheetTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label={t.ui.openMenu}
-                />
-              }
-            >
-              <Menu className="size-5" />
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72">
-              <SheetHeader>
-                <SheetTitle>{t.ui.menu}</SheetTitle>
-              </SheetHeader>
-              <nav className="flex flex-col gap-1 px-4">
-                {[{ label: t.ui.home, href: "/" }, ...navLinks].map((l) => (
-                  <Link
-                    key={l.href}
-                    href={l.href}
-                    className="rounded-md px-3 py-2 text-sm font-medium hover:bg-accent"
-                  >
-                    {l.label}
-                  </Link>
-                ))}
-              </nav>
-            </SheetContent>
-          </Sheet>
-
-          <Link href="/" className="flex shrink-0 items-center gap-2">
-            <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand text-brand-foreground">
-              <img
-                src="/logo.jpg"
-                alt={t.brand}
-                className="size-full object-cover"
-              />
-            </span>
-            <span className="hidden leading-none sm:block">
-              <span className="block text-lg font-semibold tracking-tight">
-                {t.brand}
-              </span>
-              <span className="mt-0.5 block text-[9px] tracking-[0.4em] text-muted-foreground">
-                {t.brandSub}
-              </span>
-            </span>
-          </Link>
-
-          <div className="ml-auto flex shrink-0 items-center gap-1">
-            <nav className="hidden items-center lg:flex">
-              {navLinks.map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  className="px-3 py-2 text-sm font-medium text-foreground/80 hover:text-foreground"
-                >
-                  {l.label}
-                </Link>
-              ))}
-            </nav>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={switchLang}
-              aria-label={t.ui.switchLang}
-              className="font-semibold"
-            >
-              {t.ui.langButton}
-            </Button>
-
-            <ThemeToggle />
-
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={
-                    <button
-                      aria-label={t.ui.account}
-                      className="ml-1 flex size-8 items-center justify-center overflow-hidden rounded-full bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    />
-                  }
-                >
-                  {user.image ? (
-                    <img
-                      src={user.image}
-                      alt={`${user.name}'s profile`}
-                      referrerPolicy="no-referrer"
-                      className="size-8 object-cover"
-                    />
-                  ) : (
-                    <UserRound className="size-4" />
-                  )}
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-60">
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel>
-                      <p className="text-sm font-semibold">
-                        {user.name || t.ui.there}
-                      </p>
-                      <p className="text-xs font-normal text-muted-foreground">
-                        {user.email}
-                      </p>
-                    </DropdownMenuLabel>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleLogout}
-                    disabled={loggingOut}
-                  >
-                    <LogOut className="mr-2 size-4" />
-                    {loggingOut ? t.ui.loggingOut : t.ui.logout}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Link
-                href="/login"
-                className={cn(buttonVariants(), "ml-1 rounded-full px-5")}
-              >
-                {t.ui.login}
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
+      <PublicNavbar user={user} lang={lang} onSwitchLang={switchLang} />
 
       <main>
         {/* ============================ Hero ============================ */}
@@ -762,28 +664,82 @@ export default function HomeClient({
             subtitle={t.newsSection.subtitle}
           />
 
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {t.news.map((n, i) => (
-              <article
-                key={i}
-                className="flex flex-col rounded-xl border border-border bg-card p-6 text-card-foreground"
-              >
-                <p className="text-xs font-medium tracking-wide text-brand uppercase">
-                  {n.date}
-                </p>
-                <h3 className="mt-3 text-lg font-semibold">{n.title}</h3>
-                <p className="mt-2 flex-1 text-sm text-muted-foreground">
-                  {n.excerpt}
-                </p>
-                <Link
-                  href="#news"
-                  className="mt-5 inline-flex items-center gap-1 text-sm font-semibold hover:text-brand"
+          {isNewsLoading ? (
+            <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex flex-col justify-between rounded-2xl border border-border/60 bg-card/60 p-6"
                 >
-                  {t.ui.readMore} <ChevronRight className="size-4" />
-                </Link>
-              </article>
-            ))}
-          </div>
+                  <div>
+                    <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+                    <div className="mt-4 h-6 w-5/6 rounded bg-muted animate-pulse" />
+                    <div className="mt-3 space-y-2">
+                      <div className="h-4 w-full rounded bg-muted/60 animate-pulse" />
+                      <div className="h-4 w-3/4 rounded bg-muted/60 animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="mt-6 h-4 w-24 rounded bg-muted animate-pulse" />
+                </div>
+              ))}
+            </div>
+          ) : newsCount === 0 ? (
+            <div className="mx-auto mt-12 max-w-md rounded-2xl border border-dashed border-border bg-card/60 p-8 text-center sm:p-12">
+              <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Newspaper className="size-7" />
+              </div>
+              <h3 className="mt-4 text-lg font-semibold">
+                {t.newsSection.noNews}
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                {t.newsSection.noNewsSubtitle}
+              </p>
+            </div>
+          ) : (
+            <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {newsList.map((n) => {
+                const title =
+                  lang === "am" && n.titleAm ? n.titleAm : n.titleEn;
+                const excerpt =
+                  lang === "am" && n.excerptAm
+                    ? n.excerptAm
+                    : (n.excerptEn || n.contentEn);
+                const formattedDate = formatNewsDate(
+                  n.publishedAt || n.createdAt,
+                  lang,
+                );
+
+                return (
+                  <article
+                    key={n.id}
+                    className="group flex flex-col justify-between rounded-2xl border border-border/60 bg-card p-6 text-card-foreground transition duration-300 hover:border-border hover:shadow-lg"
+                  >
+                    <div>
+                      <p className="text-xs font-semibold tracking-wider text-blue-500 uppercase">
+                        {formattedDate}
+                      </p>
+                      <h3 className="mt-3 text-xl font-bold leading-snug transition-colors group-hover:text-primary">
+                        <Link href={`/news/${n.slug}`}>{title}</Link>
+                      </h3>
+                      {excerpt && (
+                        <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground line-clamp-3">
+                          {excerpt}
+                        </p>
+                      )}
+                    </div>
+                    <div className="mt-6 pt-2">
+                      <Link
+                        href={`/news/${n.slug}`}
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground transition-colors hover:text-primary"
+                      >
+                        {t.ui.readMore} <ChevronRight className="size-4" />
+                      </Link>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* ======================== Departments ======================== */}
