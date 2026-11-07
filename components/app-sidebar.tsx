@@ -61,7 +61,7 @@ const data = {
     },
     {
       title: "News",
-      url: "#",
+      url: "/admin/news",
       icon: <Newspaper />,
     },
     {

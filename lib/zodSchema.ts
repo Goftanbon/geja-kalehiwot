@@ -171,3 +171,44 @@ export const eventSchema = z.object({
 
 export type EventFormValues = z.input<typeof eventSchema>;
 export type EventSchemaType = z.output<typeof eventSchema>;
+
+export const newsCategories = [
+  "ANNOUNCEMENT",
+  "CHURCH_UPDATE",
+  "TESTIMONY",
+  "MINISTRY",
+  "COMMUNITY",
+  "OTHER",
+] as const;
+
+export const newsSchema = z.object({
+  titleEn: z
+    .string()
+    .trim()
+    .min(3, "Title (English) must be at least 3 characters")
+    .max(150),
+  titleAm: optionalText,
+  slug: z
+    .string()
+    .trim()
+    .min(2, "Slug must be at least 2 characters")
+    .max(150)
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      "Slug must only contain lowercase letters, numbers, and hyphens",
+    ),
+  excerptEn: optionalText,
+  excerptAm: optionalText,
+  contentEn: z
+    .string()
+    .trim()
+    .min(5, "Content (English) must be at least 5 characters"),
+  contentAm: optionalText,
+  author: optionalText,
+  category: z.enum(newsCategories),
+  image: z.string().optional(),
+  isPublished: z.boolean().default(false),
+});
+
+export type NewsFormValues = z.input<typeof newsSchema>;
+export type NewsSchemaType = z.output<typeof newsSchema>;
